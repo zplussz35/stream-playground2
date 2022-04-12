@@ -4,6 +4,10 @@ package brickset;
 import repository.Repository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.IntBinaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * Represents a repository of {@code LegoSet} objects.
@@ -15,64 +19,64 @@ public class LegoSetRepository extends Repository<LegoSet> {
     }
 
     /**
-     * Prints LEGO set names with more pieces than specified.
+     * Prints that Legoset with subtheme is exist or not.
      *
-     * @param MinCountOfPieces The minimum count of pieces which specified.
+     * @return true if there any Legoset with subtheme,otherwise false
      */
-    public void printLegoSetNamesWithMorePiecesThan(int MinCountOfPieces) {
-        List<String> resultLegoSets = getAll().stream().
-                filter(l -> l.getPieces() > MinCountOfPieces).
-                map(LegoSet::getName).toList();
-        System.out.println("Lego set names with more pieces than " + MinCountOfPieces + " :" + resultLegoSets);
+    public boolean hasAnyLegoSetSubTheme() {
+        return getAll().stream().
+                anyMatch(l->l.getSubtheme()!=null);
     }
 
     /**
-     * Returns the number of LEGO sets with the theme Duplo.
+     * Returns the number of tags of LEGO sets.
      *
-     * @return the number of LEGO sets with the theme Duplo.
+     * @return the number of tags of LEGO sets.
      */
-    public long countLegoSetsWithThemeDuplo() {
+    public long countAllTagsOfAllLegoSets() {
         return getAll().stream()
-                .filter(l -> l.getTheme().equals("Duplo"))
+                .filter(l->l.getTags()!=null)
+                .flatMap(l->l.getTags().stream())
                 .count();
 
     }
 
     /**
-     * Returns the maximum piece count in all LEGO sets.
+     * Returns the sum of piece counts in all LEGO sets.
      *
-     * @return the maximum piece count in all LEGO sets.
+     * @return the sum of piece counts in all LEGO sets.
      */
-    public int maxPiecesInLegoSets() {
+    public int sumOfPiecesInLegoSets() {
         return getAll().stream()
                 .mapToInt(LegoSet::getPieces)
-                .max()
-                .orElse(0);
+                .reduce(new IntBinaryOperator() {
+                    @Override
+                    public int applyAsInt(int left, int right) {
+                        return left+right;
+                    }
+                }).getAsInt();
     }
 
     /**
-     * Returns List of LEGO set names with higher weight than specified.
+     * Returns LEGO set themes with its counts in a map;
      *
-     * @param minWeight The minimum weight of pieces which specified.
-     * @return list of LEGO set names with higher weight than specified.
+     * @return LEGO set themes with its counts in a map;
      */
-    public List<String> LegoSetNamesWithHigherWeightThan(double minWeight) {
+    public Map<String,Long> LegoSetThemesWithItsCount() {
         return getAll().stream()
-                .filter(l -> l.getDimensions() != null && l.getDimensions().getWeight() != null && l.getDimensions().getWeight() > minWeight)
-                .map(LegoSet::getName)
-                .toList();
+                .map(LegoSet::getTheme)
+                .collect(Collectors.groupingBy(Function.identity(),Collectors.counting()));
     }
 
     /**
-     * Returns the LEGO set names which has subtheme.
+     * Returns the LEGO set names with the number of  its tags.
      *
-     * @return the LEGO set names which has subtheme.
+     * @return the LEGO set names with the number of  its tags.
      */
-    public List<String> LEgoSetNamesWhichHasSubtheme() {
+    public Map<String,Integer> legoSetNamesWithNumberOfTags() {
         return getAll().stream()
-                .filter(l -> l.getSubtheme() != null)
-                .map(LegoSet::getName)
-                .toList();
+                .filter(l->l.getTags()!=null)
+                .collect(Collectors.toMap(LegoSet::getName,l->l.getTags().size(),(r1,r2)->r1));
 
     }
 
@@ -81,11 +85,17 @@ public class LegoSetRepository extends Repository<LegoSet> {
 
 
         LegoSetRepository repository = new LegoSetRepository();
-        repository.printLegoSetNamesWithMorePiecesThan(200);
-        System.out.println("Lego set names which has subtheme: " + repository.LEgoSetNamesWhichHasSubtheme());
-        System.out.println("Count of Lego sets with theme Duplo: " + repository.countLegoSetsWithThemeDuplo());
-        System.out.println("Max pieces in Lego sets: " + repository.maxPiecesInLegoSets());
-        System.out.println("Lego sets with higher weight than 1.0 kg: " + repository.LegoSetNamesWithHigherWeightThan(1.0));
+        if(repository.hasAnyLegoSetSubTheme()){
+            System.out.println("There is at least one logoset with subtheme.");
+        }
+        else{
+            System.out.println("There are not logosets with subtheme.");
+        }
+        System.out.println("Count of all tags of LEGO sets: " + repository.countAllTagsOfAllLegoSets());
+        System.out.println("Sum of pieces in Lego sets: " + repository.sumOfPiecesInLegoSets());
+        System.out.println("Lego set names with the number of tags:\n" + repository.legoSetNamesWithNumberOfTags());
+        System.out.println("Lego set themes with its counts:\n" + repository.LegoSetThemesWithItsCount());
+
 
 
     }
